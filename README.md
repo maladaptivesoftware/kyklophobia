@@ -10,8 +10,8 @@ python launch.py
 **OLD** demo video: https://www.youtube.com/watch?v=o_IDO01NylM
 | | |
 |---|---|
-| <img width="1598" height="898" alt="image" src="https://github.com/user-attachments/assets/b9910b96-8005-47ed-a6c5-f0533467feb1" /> | <img width="1601" height="900" alt="image" src="https://github.com/user-attachments/assets/1d6d545c-39b8-4e28-ae00-2812c4a2633c" /> |
-| <img width="1607" height="901" alt="image" src="https://github.com/user-attachments/assets/eb5edf00-9742-424c-8ca9-7404619ded7e" /> | <img width="1603" height="901" alt="image" src="https://github.com/user-attachments/assets/47ba74b4-3fc1-4efe-8ed4-3579bb2c10a8" /> |
+| <img width="1598" height="898" alt="image" src="https://github.com/user-attachments/assets/bd2d3750-bd5b-4125-910e-9e6774a14e4c" /> | <img width="1601" height="900" alt="image" src="https://github.com/user-attachments/assets/2409f418-ea9b-4f53-bfb4-d800f6211943" /> |
+| <img width="1607" height="901" alt="image" src="https://github.com/user-attachments/assets/f03f35ff-7676-4691-aba3-8c18c7b37c4f" /> | <img width="1603" height="901" alt="image" src="https://github.com/user-attachments/assets/38ae0a7e-8841-41e5-9d67-58b46f2c3dec" /> |
 
 
 
