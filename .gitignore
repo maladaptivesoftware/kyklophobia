@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+*.pyo
+*.log
+
+# *.pkl
+
+
+server/saves/
+saves/
+content/saves
+content/tools
+versions/
+
+client/launcher.json
+client/servers.json
+client/token.bin
+
+.vscode/
+.idea/
+*.swp
+
+.test/
