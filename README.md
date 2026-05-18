@@ -15,7 +15,6 @@ python launch.py
 
 
 
-
 root `launch.py` & `server.py` are shim -> `client/launch.py`, `server/server.py`. gamefiles in `/content`
 
 ## first launch
@@ -79,9 +78,6 @@ tree/rock placed after. cross chunk tree queue in `pending_decorations` -> float
 ## chunk threading
 
 ```
-TerrainGen pool       (CHUNK_WORKERS=8, numba nogil = real parallelism)
-    └─ _generate_terrain_only(chunk) fills voxels, sets gen_ready
-
 mesh_builder_thread   (1)
     ├─ drains queue_chunkbuild (deque, dist-sorted to player)
     ├─ ungen chunk: submit to gen pool, await future
@@ -109,7 +105,7 @@ VBO pool: 32 prealloc, 1.5M float each
 `build_meshjit` @ `terrain.py:1455`. ~1200 line, single njit fn. recompile on change ~= 30s.
 
 vert = `3f pos | 3f norm | 1f ao | 2f uv`. 6 vert/face non-indexed. 
-AO baked at mesh time := transparent (water, glass) go in second VBO, back2front, depth write off. p face sort within chunk not done, wrong in some edge cases
+AO baked at mesh time := transparent (water, glass) go in second VBO, back2front, depth write off
 
 extruded -> skip meshing, render @ `world/extruded.py`
 
