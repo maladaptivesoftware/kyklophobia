@@ -119,6 +119,8 @@ def onEvent(w, events):
                 if w.oninv and w.ui.invbrwser._onsearch: continue
                 w.oninv = not w.oninv
                 if w.oninv:
+                    w.p.vel[0] = 0.0
+                    w.p.vel[2] = 0.0
                     pygame.event.set_grab(False)
                     pygame.mouse.set_visible(True)
                 else:

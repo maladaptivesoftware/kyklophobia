@@ -1032,6 +1032,9 @@ class VoxelWorld:
         
         def on_update(x, y, z, bt):
             if (x, y, z) not in self.pchg:
+                if bt == 0 and self.chunker.getblock(x, y, z) == 60:  # 60 = tnt
+                    with self._tlock:
+                        self.ptasks.append(lambda x=x, y=y, z=z: self.blockentys.activate(x, y, z, 60, _remote=True))
                 with self._uplock:
                     self.pupdates.append((x, y, z, bt))
                     

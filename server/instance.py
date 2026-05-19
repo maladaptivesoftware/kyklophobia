@@ -1,4 +1,6 @@
 ﻿import json
+import math
+import random
 import socket
 import threading
 import time
@@ -16,6 +18,26 @@ from network.protocol import (
     mkblockupd, mkchat, mkitemspawn, mkitemdespawn, mkmods, mklist,
 )
 from identity import bytetoken
+
+
+# tnt
+TNT_ID         = 60
+TNT_FUSE       = 4.0
+TNT_CFUSE_MIN  = 0.5
+TNT_CFUSE_MAX  = 1.5
+TNT_BLAST_R    = 4.0
+
+
+def _tntsphere(r=TNT_BLAST_R):
+    R, o = int(r), []
+    for dx in range(-R-1, R+2):
+        for dy in range(-R-1, R+2):
+            for dz in range(-R-1, R+2):
+                d = math.sqrt(dx*dx + dy*dy + dz*dz)
+                if d <= r: o.append((dx, dy, dz))
+    return o
+
+_TNT_OFFS = _tntsphere()
 
 
 class PlayerState:
@@ -61,6 +83,8 @@ class Instance:
         self.neid    = 1
         self.ilock   = threading.Lock()
         self.commands = None
+        self.tnts    = []   # [x, y, z, fuse]
+        self.tntlock = threading.Lock()
 
         self.initworld()
         self.initcmds()
@@ -457,7 +481,12 @@ class Instance:
 
                 elif mt == MessageType.BLOCK_CHANGE:
                     x, y, z, bt = p.reader.parse_blockchange(data)
+                    if bt == 0x2000:
+                        self.detonate(x, y, z)
+                        continue
                     if self.validblock(p, x, y, z, bt):
+                        ignite = (bt == 0x4000)
+                        if ignite: bt = 0
                         cx, cz = x // CHUNK_SZ, z // CHUNK_SZ
                         lx, lz = x - cx * CHUNK_SZ, z - cz * CHUNK_SZ
                         if not self.chunker.setblock(x, y, z, bt):
@@ -465,6 +494,8 @@ class Instance:
                         self.broadcast(
                             mkblockupd(x, y, z, bt),
                             exclude_pid=p.pid)
+
+                        if ignite: self.ignitetnt(x, y, z)
 
                 elif mt == MessageType.CHAT:
                     text = p.reader.parse_chatmsg(data)
@@ -741,13 +772,72 @@ class Instance:
 
     def _tickloop(self):
         lpos = time.time()
+        lt   = time.time()
         while self.running:
             t0 = time.time()
+            dt = t0 - lt
+            lt = t0
+            self.ticktnts(dt)
             if t0 - lpos >= self.pint:
                 self._bcastpos()
                 lpos = t0
-            dt = time.time() - t0
-            if dt < self.tint: time.sleep(self.tint - dt)
+            sd = time.time() - t0
+            if sd < self.tint: time.sleep(self.tint - sd)
+
+
+
+    def ignitetnt(self, x, y, z, fuse=30.0):
+        # fallback fuse
+        # client driven via detonate
+        with self.tntlock:
+            self.tnts.append([x, y, z, fuse])
+
+
+    def detonate(self, x, y, z):
+        # match by col (y) -> blast at the client-provided pos
+        with self.tntlock:
+            mi = None
+            for i, t in enumerate(self.tnts):
+                if t[0] == x and t[2] == z:
+                    mi = i; break
+            if mi is None: return
+            del self.tnts[mi]
+        self.explodetnt(x, y, z)
+
+
+    def ticktnts(self, dt):
+        with self.tntlock:
+            if not self.tnts: return
+            for t in self.tnts: t[3] -= dt
+            ready    = [t for t in self.tnts if t[3] <= 0.0]
+            self.tnts = [t for t in self.tnts if t[3] > 0.0]
+
+        for x, y, z, _ in ready:
+            self.explodetnt(x, y, z)
+
+
+    def explodetnt(self, ox, oy, oz):
+        # server has no loaded chunks -> work directly off modCache.
+        # every sphere position is recorded as destroyed + broadcast to clients.
+        chain = []
+
+        for dx, dy, dz in _TNT_OFFS:
+            bx, by, bz = ox + dx, oy + dy, oz + dz
+            if by < 0 or by >= CHUNK_H: continue
+            cx, cz = bx // CHUNK_SZ, bz // CHUNK_SZ
+            lx, lz = bx - cx * CHUNK_SZ, bz - cz * CHUNK_SZ
+
+            prev = self.chunker.modCache.get((cx, cz), {}).get((lx, by, lz), 0)
+            if (prev & 0x3FF) == TNT_ID:
+                chain.append((bx, by, bz))
+
+            if not self.chunker.setblock(bx, by, bz, 0):
+                self.chunker.recordmod(cx, cz, lx, by, lz, 0)
+            self.broadcast(mkblockupd(bx, by, bz, 0))
+
+        if chain:
+            new = [[bx, by, bz, random.uniform(TNT_CFUSE_MIN, TNT_CFUSE_MAX)] for bx, by, bz in chain]
+            with self.tntlock: self.tnts.extend(new)
 
 
 

@@ -40,9 +40,10 @@ BLAST_OFF = buildsphere(BLAST_RADIUS)
 
 @regblockent(60)   # world.blocks.TNT = 60
 class TNTEntity(BlockEntity):
-    def __init__(self, x, y, z, fuse=None):
+    def __init__(self, x, y, z, fuse=None, _remote=False):
         super().__init__(x, y, z)
-        self.fuse = fuse if fuse is not None else FUSE_TIME
+        self.fuse    = fuse if fuse is not None else FUSE_TIME
+        self._remote = _remote
         # pos[1] = bottom of the 1x1x1 cube
         self.pos = np.array([x + 0.5, float(y), z + 0.5], dtype='f4')
         self.vy  = _INITIAL_VEL_Y
@@ -150,6 +151,22 @@ class TNTEntity(BlockEntity):
 
         from world.blocks import TNT as TNT_ID
 
+        # server authority for block destruction.
+        # **local** entity sends detonate w/ final pos -> server does blast.
+        if nc and nc.isconn():
+            if not self._remote:
+                nc.sendchange(cx, cy, cz, 0x2000)  # tnt detonate signal
+            if chunker and pmgr:
+                for dx, dy, dz, dist in BLAST_OFF:
+                    if dist > BLAST_RADIUS * 0.6: continue
+                    bx, by, bz = cx + dx, cy + dy, cz + dz
+                    bt = chunker.getblock(bx, by, bz)
+                    if bt and bt != 0 and bt != TNT_ID:
+                        pmgr.spawn(bx, by, bz, bt)
+            if p: self.knockback(p, ex, ey, ez)
+            return
+
+
         if chunker:
             cpos = []
             npos = []
@@ -173,16 +190,10 @@ class TNTEntity(BlockEntity):
                     if dist <= BLAST_RADIUS * 0.6 and (bx, by, bz) in rm:
                         pmgr.spawn(bx, by, bz, rm[(bx, by, bz)])
 
-            if nc and nc.isconn():
-                for i in rm:
-                    nc.sendchange(i[0], i[1], i[2], 0)
-
 
             if bemgr is not None:
                 for bx, by, bz in cpos:
                     chunker.breakblock(bx, by, bz)
-                    if nc and nc.isconn():
-                        nc.sendchange(bx, by, bz, 0)
                     fuse = random.uniform(CHAIN_FUSE_MIN, CHAIN_FUSE_MAX)
                     bemgr.activate(bx, by, bz, TNT_ID, fuse=fuse)
 
@@ -197,7 +208,7 @@ class TNTEntity(BlockEntity):
                         (i.pos[1]+0.5-ey)**2 +
                         (i.pos[2]-ez)**2
                     )
-                    
+
                     if d <= BLAST_RADIUS * 1.5:
                         i.fuse = min(
                             i.fuse,
@@ -292,9 +303,12 @@ def useflintonsteel(manager, x, y, z, item_stack, world_ref):
     if world_ref.chunker.getblock(x, y, z) != TNT:
         return
 
-
     world_ref.chunker.breakblock(x, y, z)
     manager.activate(x, y, z, TNT)
+
+    nc = world_ref.netclient
+    if nc and nc.isconn():
+        nc.sendchange(x, y, z, 0x4000)  # tnt ignite signal
 
 
 
