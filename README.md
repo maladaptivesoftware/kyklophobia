@@ -1,5 +1,8 @@
 # kyklophobia
 
+![Banner](https://github.com/user-attachments/assets/1bde1302-e560-4a9e-b990-e4e3638989cf)
+
+
 recreation of beta Minecraft in pure* python
 NOT affiliated with mojang
 
