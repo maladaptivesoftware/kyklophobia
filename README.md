@@ -4,7 +4,10 @@ recreation of beta Minecraft in pure* python
 NOT affiliated with mojang
 
 ```
-python launch.py
+(MUST have UV installed for virtual environment)
+
+make run         -> launches launch.py
+make server      -> launched server.py
 ```
 
 **OLD** demo video: https://www.youtube.com/watch?v=o_IDO01NylM

@@ -1,5 +1,0 @@
-moderngl==5.12.0
-numba==0.59.0rc1
-numpy==1.26.4
-pygame==2.6.1
-pyrr==0.10.3
